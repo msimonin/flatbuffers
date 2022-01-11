@@ -59,6 +59,32 @@ pub struct FlatBufferBuilder<'fbb> {
     _phantom: PhantomData<&'fbb ()>,
 }
 
+#[non_exhaustive]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct BuilderOptions {
+    buffer_capacity: usize,
+    fields_loc_capacity: usize,
+    strings_pool_capacity: usize,
+    vtable_cache_capacity: usize,
+}
+
+impl BuilderOptions {
+    pub fn new_from_capacity(
+        buffer_capacity: usize,
+        fields_loc_capacity: usize,
+        strings_pool_capacity: usize,
+        vtable_cache_capacity: usize,
+    ) -> BuilderOptions {
+        BuilderOptions {
+            buffer_capacity,
+            fields_loc_capacity,
+            strings_pool_capacity,
+            vtable_cache_capacity,
+            ..Default::default()
+        }
+    }
+}
+
 impl<'fbb> FlatBufferBuilder<'fbb> {
     /// Create a FlatBufferBuilder that is ready for writing.
     pub fn new() -> Self {
@@ -98,6 +124,36 @@ impl<'fbb> FlatBufferBuilder<'fbb> {
             min_align: 0,
             force_defaults: false,
             strings_pool: Vec::new(),
+
+            _phantom: PhantomData,
+        }
+    }
+
+    pub fn with_options(builder_options: BuilderOptions) -> Self {
+        let BuilderOptions {
+            buffer_capacity,
+            fields_loc_capacity,
+            strings_pool_capacity,
+            vtable_cache_capacity,
+        } = builder_options;
+        let buffer = vec![0; buffer_capacity];
+        let head = buffer.len();
+        let field_locs: Vec<FieldLoc> = Vec::with_capacity(fields_loc_capacity);
+        let strings_pool: Vec<WIPOffset<&'fbb str>> = Vec::with_capacity(strings_pool_capacity);
+        let written_vtable_revpos: Vec<UOffsetT> = Vec::with_capacity(vtable_cache_capacity);
+        FlatBufferBuilder {
+            owned_buf: buffer,
+            head,
+
+            field_locs,
+            written_vtable_revpos,
+
+            nested: false,
+            finished: false,
+
+            min_align: 0,
+            force_defaults: false,
+            strings_pool,
 
             _phantom: PhantomData,
         }
